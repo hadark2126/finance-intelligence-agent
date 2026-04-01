@@ -17,7 +17,10 @@ for company in companies:
 
 all_data_df=pd.concat(all_data)
 conn=sqlite3.connect("finance_data.db")
+
+# yfinance returns the Date as an index column , hence we want index=True in order to include the Date column.
 all_data_df.to_sql("stock_history", conn, if_exists="replace", index=True)
 
 
 conn.close()
+print("Finished Succesfully")

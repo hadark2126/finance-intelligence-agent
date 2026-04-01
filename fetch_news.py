@@ -28,13 +28,12 @@ for company in companies:
     for article in articles:
         article["Company"]=company
     all_data.extend(articles)
-    # all_data.extend(response.json()["articles"])
 
 for article in all_data:
     article["source"]=article["source"]["name"]
 all_data_df=pd.DataFrame(all_data)
 conn=sqlite3.connect("finance_data.db")
-all_data_df.to_sql("news_history", conn, if_exists="replace", index=True)
+all_data_df.to_sql("news_history", conn, if_exists="replace", index=False)
 
 conn.close()
 print("Finished Succesfully")
