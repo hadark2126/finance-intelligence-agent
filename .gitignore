@@ -1,0 +1,32 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# API keys and secrets
+.env
+
+# OS clutter
+.DS_Store
+
+# Editor folders
+.vscode/
+.idea/
+
+# --- Finance Agent additions ---
+
+# Database (contains Yahoo Finance data)
+*.db
+*.sqlite
+
+# Any raw data exports
+*.csv
+*.json
+
+# Logs
+*.log
+logs/
+
+venv_activation_command.txt
