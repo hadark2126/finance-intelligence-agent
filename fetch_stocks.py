@@ -22,6 +22,6 @@ conn=sqlite3.connect("finance_data.db")
 # yfinance returns the Date as an index column , hence we want index=True in order to include the Date column.
 all_data_df.to_sql("stock_history", conn, if_exists="replace", index=True)
 
-print(all_data_df)
+# print(all_data_df)
 conn.close()
 print("Finished Succesfully")

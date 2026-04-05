@@ -41,7 +41,7 @@ def stock_tool(company):
 
 def sentiment_tool(company):
     company = str(company).strip().upper()
-    print(f"sentiment_tool called with: '{company}' type: {type(company)}")
+    # print(f"sentiment_tool called with: '{company}' type: {type(company)}")
     conn=sqlite3.connect("finance_data.db")
     news_history_df=pd.read_sql(f"SELECT * FROM news_history WHERE Company = '{company}'",conn)
     average_score=news_history_df["sentiment_score"].mean()
@@ -95,5 +95,8 @@ Question: {input}
 agent= create_react_agent(llm,tools,prompt)
 agent_executor= AgentExecutor(agent=agent,tools=tools,verbose=True)
 
-#the execution of the agent
-result=agent_executor.invoke({"input":"Analyze AAPL stock and provide an investment summary"})
+
+if __name__=="__main__":
+    #the execution of the agent
+    result=agent_executor.invoke({"input":"Analyze AAPL stock and provide an investment summary"})
+    print(result)
