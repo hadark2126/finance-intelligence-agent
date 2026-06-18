@@ -1,0 +1,24 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.vscode/
+.idea/
+*.db
+*.sqlite
+*.csv
+*.json
+*.log
+logs/
+venv_activation_command.txt
+
+# === Docker-specific additions ===
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+*.md
+.github/
+tests/
