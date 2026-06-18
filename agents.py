@@ -47,6 +47,9 @@ def sentiment_tool(company):
     # print(f"sentiment_tool called with: '{company}' type: {type(company)}")
     conn=sqlite3.connect("finance_data.db")
     news_history_df=pd.read_sql(f"SELECT * FROM news_history WHERE Company = '{company}'",conn)
+    if news_history_df.empty:
+        conn.close()
+        return f"No news rows in finance_data.db for {company}. Run fetch_news.py (or add that ticker) and retry."
     average_score=news_history_df["sentiment_score"].mean()
     most_common_label=news_history_df["sentiment_label"].mode()[0]
     positive_count = len(news_history_df[news_history_df["sentiment_label"] == "positive"])
