@@ -17,8 +17,6 @@ load_dotenv()
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 ANTHROPIC_API_KEY=os.getenv("ANTHROPIC_API_KEY")
 llm = ChatAnthropic(model=ANTHROPIC_MODEL, api_key=ANTHROPIC_API_KEY)
-# ANTHROPIC_API_KEY=os.getenv("ANTHROPIC_API_KEY")
-# llm = ChatAnthropic(model="claude-sonnet-4-20250514", api_key=ANTHROPIC_API_KEY)
 
 def stock_tool(company):
     # for not getting an error due to hidden "\n"
