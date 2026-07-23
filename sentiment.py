@@ -24,7 +24,7 @@ for title in news_df["title"]:
 news_df["sentiment_label"]=labels
 news_df["sentiment_score"]=scores
 
-print(news_df[["title", "Company", "sentiment_label", "sentiment_score"]])
+# print(news_df[["title", "Company", "sentiment_label", "sentiment_score"]])
 
 news_df.to_sql("news_history", conn, if_exists="replace", index=False)
 
