@@ -6,7 +6,7 @@ An AI agent that combines market data and news sentiment to produce investment s
 
 ## What it does
 
-The system works in two stages. First, an ingestion pipeline pulls recent stock data for a set of tickers, fetches related news headlines, and runs each headline through FinBERT to classify it as positive, neutral, or negative. All of this lands in a local SQLite database. Second, a FastAPI server exposes three read endpoints over that data, plus an `/analyze/{ticker}` endpoint that hands the question to a Claude-powered agent. The agent has two tools — one for stock data, one for sentiment — and decides which to call to produce its summary.
+The system works in two stages. First, an ingestion pipeline pulls recent stock data for a set of tickers, fetches related news headlines, and runs each headline through FinBERT to classify it as positive, neutral, or negative. All of this lands in a local SQLite database. Second, a FastAPI server exposes stock and sentiment read endpoints, plus `/analyze/{ticker}` for a single-ticker summary and `/compare?a=&b=` for a two-ticker comparison. The Claude ReAct agent has three tools (stock data, news sentiment, and CompareTickers) and uses a skill markdown file to decide when and how to compare.
 
 ## Tech stack
 
@@ -154,9 +154,17 @@ Expected: a JSON array of news headlines with their FinBERT sentiment label and 
 curl http://localhost:8000/analyze/AAPL
 ```
 
-Expected: a JSON response containing a `summary` field with markdown text. In the terminal it appears as raw text with `\n` escape characters — it's intended to be rendered by a frontend that supports markdown. The endpoint runs the LangChain agent, which makes several Claude calls and uses the internal tools, so it takes 10 to 30 seconds. First call is on the longer end of that range.
+Expected: a JSON response containing a `summary` field with markdown text. In the terminal it appears as raw text with `\n` escape characters. It is intended to be rendered by a frontend that supports markdown. The endpoint runs the LangChain agent, which makes several Claude calls and uses the internal tools, so it takes 10 to 30 seconds. First call is on the longer end of that range.
 
-If any endpoint returns a 500 error or an empty result, the database is likely missing or empty — run `python populate.py` first.
+**AI-generated two-ticker comparison:**
+
+```bash
+curl "http://localhost:8000/compare?a=AAPL&b=TSLA"
+```
+
+Expected: a JSON response with a `summary` field, same shape as `/analyze`. The agent should use the CompareTickers tool. This also calls Claude and can take about 10 to 30 seconds.
+
+If any endpoint returns a 500 error or an empty result, the database is likely missing or empty. Run `python populate.py` first.
 
 Note: the agent output is a software-generated narrative, not financial
 guidance. See the disclaimer at the top of this README.
@@ -171,7 +179,7 @@ A few practical things to know about the rate limits and quirks of the services 
 
 **FinBERT** runs locally — it's a Hugging Face model loaded via Transformers, not a hosted API. Local inference has no rate limits; it's CPU/GPU work on your machine. The model download from the Hugging Face Hub is rate-limited, with stricter quotas for anonymous users, but you only download it once: the first run of `sentiment.py` caches it to `~/.cache/huggingface/` (about 440 MB). Inside the Docker image, the model is pre-downloaded at build time so the container never hits the Hub at runtime.
 
-**Anthropic Claude** is the only paid call in this project. The `/analyze` endpoint typically makes 3–5 Claude calls per request (one per agent step). Sonnet 4.6 is priced at roughly $3 per million input tokens and $15 per million output tokens, so a single `/analyze` call costs a fraction of a cent. If you wire this up to a UI that fires requests automatically, keep an eye on your usage.
+**Anthropic Claude** is the only paid call in this project. The `/analyze` and `/compare` endpoints both use the agent and typically make several Claude calls per request (one per agent step). Sonnet 4.6 is priced at roughly $3 per million input tokens and $15 per million output tokens, so a single call costs a fraction of a cent. If you wire this up to a UI that fires requests automatically, keep an eye on your usage.
 
 ## Design notes
 
@@ -189,16 +197,21 @@ A few decisions worth flagging if you're reviewing the code:
 
 ```
 finance-intelligence-agent/
-├── backend_main.py        # FastAPI app: routes and CORS
-├── agents.py              # LangChain agent + tool definitions
-├── fetch_stocks.py        # Stock data ingestion
-├── fetch_news.py          # NewsAPI ingestion
-├── sentiment.py           # FinBERT sentiment classification
-├── populate.py            # Runs all three ingestion scripts in order
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Backend container build
-├── .dockerignore          # Files excluded from the Docker image
-├── .env.example           # Template for required env vars
+├── backend_main.py              # FastAPI app: routes and CORS
+├── agents.py                    # LangChain agent + tool definitions
+├── skills/                      # Agent skill markdown (e.g. compare-tickers)
+├── fetch_stocks.py              # Stock data ingestion
+├── fetch_news.py                # NewsAPI ingestion
+├── sentiment.py                 # FinBERT sentiment classification
+├── populate.py                  # Runs all three ingestion scripts in order
+├── conftest.py                  # Shared pytest fixtures
+├── tests/                       # Unit and integration tests
+├── .github/workflows/ci.yml     # GitHub Actions CI
+├── requirements.txt             # Python dependencies
+├── requirements-dev.txt         # Test/dev dependencies
+├── Dockerfile                   # Backend container build
+├── .dockerignore                # Files excluded from the Docker image
+├── .env.example                 # Template for required env vars
 └── README.md
 ```
 
@@ -208,8 +221,8 @@ This project is intentionally scoped for local, single-user use. A few things to
 
 **The ticker list is hardcoded.** The ingestion pipeline currently fetches data for AAPL, TSLA, and NVDA only. Other tickers won't return data. Support for arbitrary tickers is planned for a future version.
 
-**No tests.** A test suite is on the roadmap.
+**Tests and CI.** Unit and integration tests cover agent tools and API routes. GitHub Actions runs them on PRs to `main`.
 
-**SQL queries use string formatting.** The query construction in some endpoints uses f-strings rather than parameterized queries. For local use with controlled inputs this is fine; for any internet-exposed deployment it would need to be changed to parameterized queries to prevent SQL injection.
+**SQL queries use string formatting.** The query construction in some endpoints uses f-strings rather than parameterized queries. For local use with controlled inputs this is fine. For any internet-exposed deployment it would need to be changed to parameterized queries to prevent SQL injection.
 
 These are all on the roadmap.
