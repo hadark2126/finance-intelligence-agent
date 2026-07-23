@@ -51,3 +51,20 @@ def test_analyze_endpoint_uses_agent_executor(fake_db):
         response = client.get("/analyze/AAPL")
     assert response.status_code == 200
     assert response.json() == {"summary": fake_result["output"]}
+
+
+def test_compare_endpoint_uses_agent_executor(fake_db):
+    fake_result = {"output": "AAPL has stronger momentum than TSLA."}
+    with patch.object(AgentExecutor, "invoke", return_value=fake_result) as mock_invoke:
+        response = client.get("/compare", params={"a": "AAPL", "b": "TSLA"})
+    assert response.status_code == 200
+    assert response.json() == {"summary": fake_result["output"]}
+    # The two tickers should reach the agent's input prompt.
+    sent_input = mock_invoke.call_args.args[0]["input"]
+    assert "AAPL" in sent_input
+    assert "TSLA" in sent_input
+
+
+def test_compare_endpoint_requires_both_params(fake_db):
+    response = client.get("/compare", params={"a": "AAPL"})
+    assert response.status_code == 422

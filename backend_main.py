@@ -41,3 +41,9 @@ def get_sentiment_data(company: str):
 def get_analysis(company: str):
     result=agent_executor.invoke({"input":f"Analyze {company} stock and provide an investment summary"})
     return {"summary":result["output"]}
+
+
+@app.get("/compare")
+def compare_companies(a: str, b: str):
+    result=agent_executor.invoke({"input":f"Compare {a} and {b} and provide an investment summary"})
+    return {"summary":result["output"]}
