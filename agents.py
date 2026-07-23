@@ -13,6 +13,9 @@ from langchain_classic.prompts import PromptTemplate
 #importing Claude as the LLM
 from langchain_anthropic import ChatAnthropic
 
+#for the use of the skills
+from pathlib import Path
+
 load_dotenv()
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 ANTHROPIC_API_KEY=os.getenv("ANTHROPIC_API_KEY")
@@ -62,6 +65,39 @@ def sentiment_tool(company):
     Neutral amount : {neutral_count}
     """
 
+def compare_tickers_tool(tickers):
+    """Compare stock + sentiment data for exactly two tickers.
+
+    Input should be two tickers separated by a comma, e.g. 'AAPL,TSLA'.
+    """
+    text = str(tickers).strip().upper().replace(" ", "")
+    parts = [p for p in text.split(",") if p]
+    if len(parts) != 2:
+        return (
+            "The input does not include two tickers. "
+            "Provide exactly two tickers separated by a comma, e.g. AAPL,TSLA."
+        )
+
+    ticker_a, ticker_b = parts
+    stock_a = stock_tool(ticker_a)
+    stock_b = stock_tool(ticker_b)
+    sentiment_a = sentiment_tool(ticker_a)
+    sentiment_b = sentiment_tool(ticker_b)
+
+    return f"""
+Comparison: {ticker_a} vs {ticker_b}
+
+{ticker_a} — stock:
+{stock_a}
+{ticker_a} — sentiment:
+{sentiment_a}
+
+{ticker_b} — stock:
+{stock_b}
+{ticker_b} — sentiment:
+{sentiment_b}
+"""
+
 tools = [
     Tool(
         name="StockData",
@@ -72,11 +108,27 @@ tools = [
         name="SentimentData",
         description="Use this to get the average sentiment score and most common sentiment label from news headlines for a company. Input should be a ticker symbol like AAPL, TSLA, or NVDA.",
         func=sentiment_tool
+    ),
+    Tool(
+        name="CompareTickers",
+        description=(
+            "Use this to compare two companies side by side using stock data and "
+            "news sentiment. Input must be exactly two ticker symbols separated "
+            "by a comma, e.g. AAPL,TSLA."
+        ),
+        func=compare_tickers_tool
     )
 ]
+SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+compare_tickers_skill = (SKILLS_DIR / "compare-tickers.md").read_text(encoding="utf-8")
 
-prompt = PromptTemplate.from_template("""
+prompt = PromptTemplate.from_template(
+    """
 You are a financial analysis assistant. Your job is to analyze stock data and news sentiment for companies and provide a clear investment summary.
+
+"""
+    + compare_tickers_skill
+    + """
 
 You have access to the following tools:
 {tools}
@@ -93,7 +145,8 @@ Final Answer: your investment summary
 
 Question: {input}
 {agent_scratchpad}
-""")
+"""
+)
 
 #creating the agent
 agent= create_react_agent(llm,tools,prompt)
@@ -102,5 +155,11 @@ agent_executor= AgentExecutor(agent=agent,tools=tools,verbose=True)
 
 if __name__=="__main__":
     #the execution of the agent
-    result=agent_executor.invoke({"input":"Analyze AAPL stock and provide an investment summary"})
-    print(result)
+    # result=agent_executor.invoke({"input":"Analyze AAPL stock and provide an investment summary"})
+    # print(result)
+    # result = agent_executor.invoke({"input": "Compare AAPL and NVDA"})
+    # # print(result)
+    # print(result.get("output", result))
+    result=agent_executor.invoke({"input":"Analyze IBM stock and provide an investment summary"})
+    # print(result)
+    print(result.get("output", result))

@@ -38,7 +38,9 @@ def fake_db(tmp_path, monkeypatch):
     conn.execute(
         "INSERT INTO stock_history VALUES "
         "('2024-01-01', 149.0, 151.0, 148.0, 150.0, 1000, 0.0, 0.0, 'AAPL', 0.0),"
-        "('2024-01-02', 150.0, 154.0, 149.5, 153.0, 1200, 0.0, 0.0, 'AAPL', 2.0)"
+        "('2024-01-02', 150.0, 154.0, 149.5, 153.0, 1200, 0.0, 0.0, 'AAPL', 2.0),"
+        "('2024-01-01', 200.0, 205.0, 198.0, 200.0, 2000, 0.0, 0.0, 'TSLA', 0.0),"
+        "('2024-01-02', 198.0, 202.0, 195.0, 196.0, 2100, 0.0, 0.0, 'TSLA', -2.0)"
     )
     conn.execute(
         "CREATE TABLE news_history ("
@@ -56,7 +58,8 @@ def fake_db(tmp_path, monkeypatch):
         ")"
     )
     conn.execute(
-        "INSERT INTO news_history VALUES ("
+        "INSERT INTO news_history VALUES "
+        "("
         "'Reuters', "
         "'Jane Doe', "
         "'Apple hits record revenue', "
@@ -68,6 +71,19 @@ def fake_db(tmp_path, monkeypatch):
         "'AAPL', "
         "'positive', "
         "0.91"
+        "),"
+        "("
+        "'Bloomberg', "
+        "'John Smith', "
+        "'Tesla faces production delays', "
+        "'Tesla delayed deliveries this quarter.', "
+        "'https://example.com/tesla-delays', "
+        "'https://example.com/tesla.jpg', "
+        "'2024-01-01', "
+        "'Full article content about Tesla delays.', "
+        "'TSLA', "
+        "'negative', "
+        "0.82"
         ")"
     )
     conn.commit()
