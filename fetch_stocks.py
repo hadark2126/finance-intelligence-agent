@@ -11,7 +11,8 @@ companies = ["AAPL", "TSLA", "NVDA"]
 all_data=[]
 for company in companies:
     stock=yf.Ticker(company)
-    company_history=stock.history(period="5d")
+    company_history=stock.history(period="200d")
+    company_history = company_history.iloc[:-1]
     company_history["Company"]=company
     company_history["pct_change"] = company_history["Close"].pct_change() * 100
     all_data.append(company_history)
