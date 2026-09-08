@@ -1,7 +1,10 @@
 import pandas as pd
 import sqlite3
 from transformers import pipeline
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
@@ -12,7 +15,12 @@ conn=sqlite3.connect("finance_data.db")
 news_df=pd.read_sql("SELECT * FROM news_history",conn)
 # # print(news_df)
 # print(news_df.columns.tolist())
-sentiment_pipeline = pipeline("text-classification", model="ProsusAI/finbert")
+
+hf_token = os.getenv("HF_TOKEN")
+if hf_token:
+    sentiment_pipeline = pipeline("text-classification", model="ProsusAI/finbert", token=hf_token)
+else:
+    sentiment_pipeline = pipeline("text-classification", model="ProsusAI/finbert")
 
 labels=[]
 scores=[]
