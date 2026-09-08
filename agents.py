@@ -2,6 +2,8 @@ import pandas as pd
 import sqlite3
 from dotenv import load_dotenv
 import os
+import smtplib
+from email.message import EmailMessage
 
 # The agent tools set up
 from langchain_classic.tools import Tool
@@ -16,6 +18,9 @@ from langchain_anthropic import ChatAnthropic
 #for the use of the skills
 from pathlib import Path
 
+#for the email sending
+SEND_MAIL = True
+
 load_dotenv()
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 ANTHROPIC_API_KEY=os.getenv("ANTHROPIC_API_KEY")
@@ -25,6 +30,13 @@ def stock_tool(company):
     # for not getting an error due to hidden "\n"
     company = str(company).strip().upper()
     conn=sqlite3.connect("finance_data.db")
+    table_ok = pd.read_sql(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='stock_history'",
+        conn,
+    )
+    if table_ok.empty:
+        conn.close()
+        return f"No stock rows in finance_data.db for {company}. Run fetch_stocks.py (or add that ticker) and retry."
     stock_history=pd.read_sql(f"SELECT * FROM stock_history WHERE Company = '{company}'",conn)
     if stock_history.empty:
         conn.close()
@@ -47,6 +59,13 @@ def sentiment_tool(company):
     company = str(company).strip().upper()
     # print(f"sentiment_tool called with: '{company}' type: {type(company)}")
     conn=sqlite3.connect("finance_data.db")
+    table_ok = pd.read_sql(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='news_history'",
+        conn,
+    )
+    if table_ok.empty:
+        conn.close()
+        return f"No news rows in finance_data.db for {company}. Run fetch_news.py (or add that ticker) and retry."
     news_history_df=pd.read_sql(f"SELECT * FROM news_history WHERE Company = '{company}'",conn)
     if news_history_df.empty:
         conn.close()
@@ -153,13 +172,33 @@ agent= create_react_agent(llm,tools,prompt)
 agent_executor= AgentExecutor(agent=agent,tools=tools,verbose=True)
 
 
+def send_email(subject, body):
+    host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    port = int(os.getenv("SMTP_PORT", "587"))
+    user = os.getenv("EMAIL_USER")
+    password = os.getenv("EMAIL_APP_PASSWORD")
+    recipient = os.getenv("EMAIL_TO", user)
+
+    if not (user and password and recipient):
+        print("Skipping email: EMAIL_USER, EMAIL_APP_PASSWORD, or EMAIL_TO not set.")
+        return
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = user
+    message["To"] = recipient
+    message.set_content(body)
+
+    with smtplib.SMTP(host, port) as server:
+        server.starttls()
+        server.login(user, password)
+        server.send_message(message)
+    print(f"Email sent to {recipient}: {subject}")
+
+
 if __name__=="__main__":
-    #the execution of the agent
-    # result=agent_executor.invoke({"input":"Analyze AAPL stock and provide an investment summary"})
-    # print(result)
-    # result = agent_executor.invoke({"input": "Compare AAPL and NVDA"})
-    # # print(result)
-    # print(result.get("output", result))
-    result=agent_executor.invoke({"input":"Analyze IBM stock and provide an investment summary"})
-    # print(result)
+
+    result=agent_executor.invoke({"input":"Analyze AAPL stock and provide an investment summary"})
     print(result.get("output", result))
+    if SEND_MAIL:
+        send_email("Investment analysis", str(result.get("output", result)))
