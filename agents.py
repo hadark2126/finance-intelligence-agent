@@ -37,7 +37,7 @@ def stock_tool(company):
     if table_ok.empty:
         conn.close()
         return f"No stock rows in finance_data.db for {company}. Run fetch_stocks.py (or add that ticker) and retry."
-    stock_history=pd.read_sql(f"SELECT * FROM stock_history WHERE Company = '{company}'",conn)
+    stock_history=pd.read_sql("SELECT * FROM stock_history WHERE Company = ?", conn, params=(company,))
     if stock_history.empty:
         conn.close()
         return f"No stock rows in finance_data.db for {company}. Run fetch_stocks.py (or add that ticker) and retry."
@@ -47,12 +47,15 @@ def stock_tool(company):
     first_close = stock_history.iloc[0]["Close"]
     last_close = stock_history.iloc[-1]["Close"]
     trend = "upward" if last_close > first_close else "downward"
+    days_count = len(stock_history)
+    average_close = stock_history["Close"].mean()
     conn.close()
     return f"""
     Most recent closing price: {recent_closing_price}
     Most recent percentage difference: {recent_change}
     Company volume : {company_val}
     Trend : {trend}
+    Average closing price over {days_count} days: {average_close}
     """
 
 def sentiment_tool(company):
@@ -66,22 +69,28 @@ def sentiment_tool(company):
     if table_ok.empty:
         conn.close()
         return f"No news rows in finance_data.db for {company}. Run fetch_news.py (or add that ticker) and retry."
-    news_history_df=pd.read_sql(f"SELECT * FROM news_history WHERE Company = '{company}'",conn)
+    news_history_df=pd.read_sql("SELECT * FROM news_history WHERE Company = ?", conn, params=(company,))
     if news_history_df.empty:
         conn.close()
         return f"No news rows in finance_data.db for {company}. Run fetch_news.py (or add that ticker) and retry."
-    average_score=news_history_df["sentiment_score"].mean()
-    most_common_label=news_history_df["sentiment_label"].mode()[0]
-    positive_count = len(news_history_df[news_history_df["sentiment_label"] == "positive"])
-    negative_count = len(news_history_df[news_history_df["sentiment_label"] == "negative"])
-    neutral_count = len(news_history_df[news_history_df["sentiment_label"] == "neutral"])
+    labels_dict={"positive":0,"negative":0,"neutral":0}
+    aggregated_scores={"positive":0.0,"negative":0.0,"neutral":0.0}
+    for i in range(len(news_history_df)):
+        label = news_history_df["sentiment_label"].iloc[i]
+        score = news_history_df["sentiment_score"].iloc[i]
+        labels_dict[label] += 1
+        aggregated_scores[label] += score
+    avg_positive = aggregated_scores["positive"] / labels_dict["positive"] if labels_dict["positive"] else 0.0
+    avg_negative = aggregated_scores["negative"] / labels_dict["negative"] if labels_dict["negative"] else 0.0
+    avg_neutral = aggregated_scores["neutral"] / labels_dict["neutral"] if labels_dict["neutral"] else 0.0
     conn.close()
     return f"""
-    Average score :{average_score}
-    Most common label : {most_common_label}
-    Positive amount : {positive_count}
-    Negative amount : {negative_count}
-    Neutral amount : {neutral_count}
+    Average positive score :{avg_positive}
+    Average negative score :{avg_negative}
+    Average neutral score :{avg_neutral}
+    Positive amount : {labels_dict["positive"]}
+    Negative amount : {labels_dict["negative"]}
+    Neutral amount : {labels_dict["neutral"]}
     """
 
 def compare_tickers_tool(tickers):
@@ -131,9 +140,10 @@ tools = [
     Tool(
         name="CompareTickers",
         description=(
-            "Use this to compare two companies side by side using stock data and "
-            "news sentiment. Input must be exactly two ticker symbols separated "
-            "by a comma, e.g. AAPL,TSLA."
+            "Use this to compare two companies side by side using stock data "
+            "(including average closing price) and news sentiment "
+            "(overall and per-label averages). Input must be exactly two ticker "
+            "symbols separated by a comma, e.g. AAPL,TSLA."
         ),
         func=compare_tickers_tool
     )
@@ -202,3 +212,11 @@ if __name__=="__main__":
     print(result.get("output", result))
     if SEND_MAIL:
         send_email("Investment analysis", str(result.get("output", result)))
+
+    # # Comparison prompt
+    # comparison = agent_executor.invoke(
+    #     {"input": "Compare AAPL and NVDA and provide an investment summary"}
+    # )
+    # print(comparison.get("output", comparison))
+    # if SEND_MAIL:
+    #     send_email("AAPL vs NVDA comparison", str(comparison.get("output", comparison)))
