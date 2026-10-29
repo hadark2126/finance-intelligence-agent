@@ -58,7 +58,7 @@ def test_compare_endpoint_uses_agent_executor(fake_db):
     with patch.object(AgentExecutor, "invoke", return_value=fake_result) as mock_invoke:
         response = client.get("/compare", params={"a": "AAPL", "b": "TSLA"})
     assert response.status_code == 200
-    assert response.json() == {"summary": fake_result["output"]}
+    assert response.json() == fake_result["output"]
     # The two tickers should reach the agent's input prompt.
     sent_input = mock_invoke.call_args.args[0]["input"]
     assert "AAPL" in sent_input
