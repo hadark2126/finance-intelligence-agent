@@ -46,4 +46,5 @@ def get_analysis(company: str):
 @app.get("/compare")
 def compare_companies(a: str, b: str):
     result=agent_executor.invoke({"input":f"Compare {a} and {b} and provide an investment summary"})
+    return result["output"]
     return {"summary":result["output"]}
