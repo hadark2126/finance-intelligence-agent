@@ -19,10 +19,6 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-          cache: "pip"
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
       - name: Install app dependencies
         run: pip install fastapi "uvicorn[standard]" pandas python-dotenv langchain-classic langchain-anthropic
       - name: Install test dependencies
@@ -40,10 +36,6 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-          cache: "pip"
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
       - name: Install app dependencies
         run: pip install fastapi "uvicorn[standard]" pandas python-dotenv langchain-classic langchain-anthropic
       - name: Install test dependencies
