@@ -27,8 +27,9 @@ Rules:
 
 ## What the tool returns
 
-A side-by-side summary of stock data and news sentiment for both tickers,
-based on finance_data.db.
+A side-by-side summary of stock data (including average closing price over
+the history window) and news sentiment (overall average plus per-label
+averages) for both tickers, based on finance_data.db.
 
 ## What to do after
 
