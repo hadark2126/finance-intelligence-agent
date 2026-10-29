@@ -1,9 +1,9 @@
 python-dotenv
 langchain-classic
 langchain-anthropic
-yfinance
+yfinance==1.5.1
 requests
-pandas
+pandas==3.0.3
 torch
 transformers
 uvicorn[standard]
